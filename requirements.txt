@@ -1,2 +1,1 @@
-openai>=2.0,<3
-Pillow>=10,<13
+-r skills/amazon-gallery-studio/requirements.txt

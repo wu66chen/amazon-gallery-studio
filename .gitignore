@@ -5,3 +5,9 @@ __pycache__/
 review/
 任务资产与审批/
 .scratch/
+
+# Internal planning / local-only documents (not part of the public release)
+docs/AGS-vNext-Spec-v1.1.md
+docs/amazon-gallery-studio-README-proposal.md
+docs/communication-and-assets.md
+docs/communication-research.md
