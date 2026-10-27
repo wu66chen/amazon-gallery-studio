@@ -236,13 +236,13 @@ python3 -m unittest discover -s tests -v
 
 ## 开源许可证
 
-本项目基于 [MIT License](../../LICENSE) 开源。
+本项目基于 [MIT License](LICENSE) 开源。
 
 允许个人及商业使用、修改和再分发，但须保留原有版权及许可证声明。
 
 ## 返回技能集
 
-- [Ecommerce Visual Skills 技能集首页](../../README.md)
+- [Ecommerce Visual Skills 技能集](https://github.com/wu66chen/ecommerce-visual-skills)
 
 ## 相关链接
 

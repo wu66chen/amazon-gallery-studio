@@ -34,7 +34,7 @@ class DocsTest(unittest.TestCase):
             self.assertIn(term, SKILL_README)
         self.assertIn("产生真实费用", SKILL_README)
         self.assertIn("references/glossary.md", SKILL_README)
-        self.assertIn("[MIT License](../../LICENSE)", SKILL_README)
+        self.assertIn("[MIT License](LICENSE)", SKILL_README)
 
     def test_glossary_entry_points_to_single_authoritative_copy(self):
         self.assertIn("../skills/amazon-listing-images-skill/references/glossary.md", GLOSSARY_ENTRY)
