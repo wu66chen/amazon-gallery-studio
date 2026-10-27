@@ -72,7 +72,7 @@ npx skills update -g
 npx skills remove -g amazon-listing-images-skill
 ```
 
-> **验证状态**：已用本地仓库路径验证 Skills CLI 能发现本 Skill，并把 `SKILL.md`、`scripts/`、`references/`、`requirements.txt` 完整复制到隔离环境的 `~/.agents/skills/amazon-listing-images-skill`。远程 GitHub 安装与各 Agent 内的自动加载尚未在本次改造中实测。
+> **验证状态**：已从公开仓库用 Skills CLI 单 Skill 安装到隔离 HOME，确认 `SKILL.md`、`README.md`、`scripts/`、`references/`、`requirements.txt` 完整复制到 `~/.agents/skills/amazon-listing-images-skill`，并完成跨目录无付费流程。Codex/Claude Code/Cursor/WorkBuddy 的实际加载仍未实测。
 
 ### 2. 安装 Python 依赖
 
@@ -134,7 +134,7 @@ chmod 600 ~/.config/amazon-listing-images-skill/.env
 
 | Agent | 安装方式 | 状态 |
 | --- | --- | --- |
-| **OpenCode** | Skills CLI 全局安装；读取 `~/.config/opencode/skills/`、`~/.agents/skills/` 等 | 已验证：本地路径全局安装、跨目录执行、无付费规划闭环 |
+| **OpenCode** | Skills CLI 全局安装；读取 `~/.config/opencode/skills/`、`~/.agents/skills/` 等 | 已验证：公开仓库单 Skill 全局安装、跨目录执行、无付费规划闭环 |
 | **Codex** | Skills CLI 全局安装；使用其支持的技能目录 | 仅格式兼容，未实测 |
 | **Claude Code** | Skills CLI 全局安装；用户级 `~/.claude/skills/` | 仅格式兼容，未实测 |
 | **Cursor** | Skills CLI 安装；按 Cursor 当前版本技能目录 | 仅格式兼容，未实测 |
@@ -218,7 +218,7 @@ npx skills update -g
 
 ## 已知限制
 
-- 远程 GitHub 安装与 Agent 会话内付费出图未在本次改造中实测；本地路径安装与无付费闭环已验证。
+- Agent 会话内的真实付费识图/生图/审图未实测；公开仓库安装与无付费闭环已验证。
 - 除 OpenCode 外，其他 Agent 仅完成格式/目录适配说明，未做真实端到端测试。
 - “批准后自动继续”由 `SKILL.md` 指令驱动；脚本负责门禁与执行，客户端是否严格遵循需在目标 Agent 中验证。
 - 生图端点必须兼容多图编辑；部分中转站会忽略多图或返回不同尺寸。本项目会读取实际文件并记录，但无法强制服务商支持。
