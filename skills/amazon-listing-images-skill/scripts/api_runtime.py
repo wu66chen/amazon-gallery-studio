@@ -14,7 +14,11 @@ from urllib.parse import urlparse
 SKILL_DIR = Path(__file__).resolve().parents[1]
 MARKER = ".gallery-project-root"
 WORKSPACE_ENV = "AMAZON_GALLERY_WORKSPACE"
-CONFIG_NAME = ".amazon-gallery-studio.json"
+# New names for this skill; legacy names below remain supported for existing users.
+CONFIG_NAME = ".amazon-listing-images-skill.json"
+LEGACY_CONFIG_NAME = ".amazon-gallery-studio.json"
+CONFIG_DIR_NAME = "amazon-listing-images-skill"
+LEGACY_CONFIG_DIR_NAME = "amazon-gallery-studio"
 FOLDERS = ("01_原始素材", "02_代表图审批", "03_最终套图", "04_记录与报告")
 DEFAULT_ENDPOINTS = {
     "vision": {
@@ -31,11 +35,18 @@ DEFAULT_ENDPOINTS = {
 ROLES = tuple(DEFAULT_ENDPOINTS)
 
 
-def user_config_dir():
+def user_config_dirs():
+    """Preferred first; legacy second. Existing users keep their old config."""
+    override = os.environ.get("AMAZON_GALLERY_CONFIG_DIR")
+    if override:
+        return [Path(override).expanduser()]
     base = os.environ.get("XDG_CONFIG_HOME")
     root = Path(base).expanduser() if base else Path.home() / ".config"
-    override = os.environ.get("AMAZON_GALLERY_CONFIG_DIR")
-    return Path(override).expanduser() if override else root / "amazon-gallery-studio"
+    return [root / CONFIG_DIR_NAME, root / LEGACY_CONFIG_DIR_NAME]
+
+
+def user_config_dir():
+    return user_config_dirs()[0]
 
 
 def _inside(path, parent):
@@ -63,13 +74,13 @@ def workspace(explicit=None):
         if explicit is None:
             raise ValueError("当前目录不存在：%s" % candidate)
         candidate.mkdir(parents=True)
-        (candidate / MARKER).write_text("amazon-gallery-studio\n", encoding="utf-8")
+        (candidate / MARKER).write_text("amazon-listing-images-skill\n", encoding="utf-8")
     if not candidate.is_dir():
         raise ValueError("任务工作区必须是目录：%s" % candidate)
     if explicit is not None and candidate != Path.cwd().resolve() and not (candidate / MARKER).is_file():
         raise ValueError(
             "指定的工作区缺少 %s：外部素材目录不能作为任务工作区。"
-            "请在商品项目中运行，或先在该目录运行 task_assets.py --init。" % MARKER
+            "请在商品项目中运行，或先在该目录运行 import_assets.py。" % MARKER
         )
     return candidate
 
@@ -77,7 +88,7 @@ def workspace(explicit=None):
 def initialise(explicit=None):
     """Create the workspace layout and its marker file."""
     root = workspace(explicit)
-    (root / MARKER).write_text("amazon-gallery-studio\n", encoding="utf-8")
+    (root / MARKER).write_text("amazon-listing-images-skill\n", encoding="utf-8")
     for folder in FOLDERS:
         (root / "任务资产与审批" / folder).mkdir(parents=True, exist_ok=True)
     return root
@@ -101,8 +112,10 @@ def _read_env_file(path):
 
 
 def credentials_env(root):
-    """User-level .env, then workspace .env, then the process environment."""
-    values = _read_env_file(user_config_dir() / ".env")
+    """Legacy user .env, new user .env, workspace .env, then process environment."""
+    values = {}
+    for directory in reversed(user_config_dirs()):
+        values.update(_read_env_file(directory / ".env"))
     values.update(_read_env_file(Path(root) / ".env"))
     values.update({name: value for name, value in os.environ.items() if value})
     return values
@@ -128,10 +141,12 @@ def endpoint(role, root=None):
     values = credentials_env(root)
     selected = DEFAULT_ENDPOINTS[role]
     source = "内置默认值"
-    for candidate, label in (
-        (_read_json(user_config_dir() / "config.json"), str(user_config_dir() / "config.json")),
-        (_read_json(root / CONFIG_NAME), str(root / CONFIG_NAME)),
-    ):
+    config_candidates = []
+    for directory in reversed(user_config_dirs()):
+        config_candidates.append((_read_json(directory / "config.json"), str(directory / "config.json")))
+    config_candidates.append((_read_json(root / LEGACY_CONFIG_NAME), str(root / LEGACY_CONFIG_NAME)))
+    config_candidates.append((_read_json(root / CONFIG_NAME), str(root / CONFIG_NAME)))
+    for candidate, label in config_candidates:
         if not candidate:
             continue
         unknown = set(candidate) - set(ROLES)
@@ -157,8 +172,9 @@ def endpoint(role, root=None):
             "缺少 %s 凭据 %s。请任选一种方式配置：\n"
             "  1. 当前终端 export %s=...\n"
             "  2. 当前工作区 %s\n"
-            "  3. 用户级 %s（对所有项目生效）"
-            % (role, env_name, env_name, root / ".env", user_config_dir() / ".env")
+            "  3. 用户级 %s 或旧版兼容目录 %s（对所有项目生效）"
+            % (role, env_name, env_name, root / ".env", user_config_dirs()[0] / ".env",
+               user_config_dirs()[-1] / ".env")
         )
     return {"base_url": url, "model": selected["model"], "key": key, "api_key_env": env_name}
 

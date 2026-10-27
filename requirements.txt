@@ -1,1 +1,1 @@
--r skills/amazon-gallery-studio/requirements.txt
+-r skills/amazon-listing-images-skill/requirements.txt

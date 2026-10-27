@@ -7,7 +7,7 @@
 | 目录 | 作用 | 是否应提交到 Git |
 | --- | --- | --- |
 | Skill 安装目录 | `SKILL.md`、`scripts/`、`requirements.txt`、`references/` | 由 Skill 仓库管理 |
-| 用户配置目录 | `~/.config/amazon-gallery-studio/`（可用 `XDG_CONFIG_HOME` 或 `AMAZON_GALLERY_CONFIG_DIR` 改） | 否 |
+| 用户配置目录 | `~/.config/amazon-listing-images-skill/`（新）；旧版 `~/.config/amazon-gallery-studio/` 继续兼容 | 否 |
 | 任务工作区 | 商品项目目录；所有输出在 `任务资产与审批/` 下 | 通常否 |
 
 脚本拒绝把 Skill 安装目录当作工作区，因此不会把商品图或生成结果写进全局技能目录。
@@ -15,10 +15,10 @@
 ## 工作区选择顺序
 
 1. `--workspace` 参数
-2. 环境变量 `AMAZON_GALLERY_WORKSPACE`
+2. 环境变量 `AMAZON_GALLERY_WORKSPACE`（历史名称，继续兼容）
 3. 当前工作目录
 
-显式指定的已存在目录必须包含 `.gallery-project-root` 标记；`import_assets.py` 会自动创建。这样可以避免把外部素材文件夹误当工作区。新目录（尚不存在）可由脚本创建并自动写入标记。
+显式指定的已存在目录必须包含 `.gallery-project-root` 标记；`import_assets.py` 会自动创建。这样可以避免把外部素材文件夹误当工作区。新目录（尚不存在）可由脚本创建并自动写入标记。该标记文件名属于历史数据协议，刻意保持不变。
 
 ## 模型角色
 
@@ -50,24 +50,29 @@
 **端点配置**（低 → 高）：
 
 1. 内置默认值
-2. `~/.config/amazon-gallery-studio/config.json`
-3. `<workspace>/.amazon-gallery-studio.json`
+2. 用户级旧配置 `~/.config/amazon-gallery-studio/config.json`
+3. 用户级新配置 `~/.config/amazon-listing-images-skill/config.json`
+4. 工作区旧配置 `<workspace>/.amazon-gallery-studio.json`
+5. 工作区新配置 `<workspace>/.amazon-listing-images-skill.json`
 
 **密钥**（低 → 高）：
 
-1. `~/.config/amazon-gallery-studio/.env`
-2. `<workspace>/.env`
-3. 当前进程环境变量
+1. 用户级旧 `.env`：`~/.config/amazon-gallery-studio/.env`
+2. 用户级新 `.env`：`~/.config/amazon-listing-images-skill/.env`
+3. `<workspace>/.env`
+4. 当前进程环境变量
 
-工作区覆盖用户级，进程环境覆盖两者。`api_key_env` 指定读取哪个变量名，因此不同服务商可以使用各自命名的密钥。
+新目录/新文件覆盖旧目录/旧文件；工作区覆盖用户级；进程环境最高。`AMAZON_GALLERY_CONFIG_DIR` 仍可用，用于显式指定用户配置目录（历史名称，保持兼容）。
 
 一次性配置（推荐，跨项目复用）：
 
 ```bash
-mkdir -p ~/.config/amazon-gallery-studio
-printf 'TOKEASE_API_KEY=你的密钥\n' > ~/.config/amazon-gallery-studio/.env
-chmod 600 ~/.config/amazon-gallery-studio/.env
+mkdir -p ~/.config/amazon-listing-images-skill
+printf 'TOKEASE_API_KEY=你的密钥\n' > ~/.config/amazon-listing-images-skill/.env
+chmod 600 ~/.config/amazon-listing-images-skill/.env
 ```
+
+已有旧配置 `~/.config/amazon-gallery-studio/.env` 的用户无需迁移，脚本会继续读取；若新旧同时存在，新配置优先。
 
 项目专属配置：在当前工作区 `.env` 中写入同名变量，并确保 `.gitignore` 包含 `.env`。
 

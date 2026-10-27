@@ -1,17 +1,17 @@
 ---
-name: amazon-gallery-studio
-description: "Plan and create Amazon listing image sets from real product photos. Use for Amazon 商品套图、MAIN 首图/Listing 副图、多色商品图、场景图、细节图. Imports all source images, recognizes the product with a vision model, proposes a configurable gallery plan with costs, generates one representative image for approval, then completes and audits the remaining set with resumable records."
+name: amazon-listing-images-skill
+description: "Plan and create Amazon listing image sets from real product photos. Use for Amazon 商品套图、MAIN 首图、Listing 副图、多色商品图、场景图、细节图、白底主图复用. Imports source images, recognizes the product and existing white-background MAIN candidates with a vision model, proposes a configurable gallery plan with copy/white-background choices and costs, generates one representative image for approval, then completes, audits and delivers the remaining set with resumable records."
 compatibility: "Requires Python 3.9+, requirements.txt, and network access to an OpenAI-compatible vision endpoint (chat/completions with images) and an OpenAI-compatible image edit endpoint (images/edits returning b64_json)."
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
   author: "wu66chen"
 ---
 
-# Amazon Gallery Studio
+# Amazon Listing Images Skill
 
 `<skill>` = the directory containing this `SKILL.md`; scripts are `<skill>/scripts/`. The **workspace** is the user's product project (current directory, `--workspace`, or `AMAZON_GALLERY_WORKSPACE`). Never write task files into `<skill>`.
 
-Read [references/configuration.md](references/configuration.md) when configuring providers. Terms and approval semantics: `docs/GLOSSARY.md` in the source repo; do not contradict it.
+Read [references/configuration.md](references/configuration.md) when configuring providers. Terms and approval semantics: [references/glossary.md](references/glossary.md); do not contradict it.
 
 ## Hard rules
 
@@ -142,8 +142,8 @@ Do not dump raw prompts, JSON ledgers or internal paths already shown. Store the
 
 ## Configuration
 
-Priority (low → high): built-in defaults → `~/.config/amazon-gallery-studio/config.json` → `<workspace>/.amazon-gallery-studio.json`.
-Keys: user-level `.env` → workspace `.env` → process environment. Both roles accept `base_url`, `model`, `api_key_env`. Remote endpoints must be HTTPS. Never print or persist keys.
+Priority (low → high): built-in defaults → legacy `~/.config/amazon-gallery-studio/config.json` → new `~/.config/amazon-listing-images-skill/config.json` → legacy `<workspace>/.amazon-gallery-studio.json` → new `<workspace>/.amazon-listing-images-skill.json`. Legacy names are kept for existing users.
+Keys: legacy user `.env` → new user `.env` → workspace `.env` → process environment. Both roles accept `base_url`, `model`, `api_key_env`. Remote endpoints must be HTTPS. Never print or persist keys.
 
 ## Failure rules
 

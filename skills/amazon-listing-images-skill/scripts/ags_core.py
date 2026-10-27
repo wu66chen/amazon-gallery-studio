@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Shared state, asset, approval, cost and image utilities for Amazon Gallery Studio."""
+"""Shared state, asset, approval, cost and image utilities for Amazon Listing Images Skill."""
 
 import hashlib
 import json

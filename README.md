@@ -1,238 +1,140 @@
-# Amazon Gallery Studio
+# Ecommerce Visual Skills
 
-**亚马逊商品套图工作室 · 可全局安装的 Agent Skill**
+**电商视觉创作技能集 · A collection of Agent Skills for ecommerce visual work**
 
-给 Agent 一组真实商品照片和一句简单需求，它会先识别商品、和你确认可编辑的套图方案与真实生图费用，再生成一张代表图；代表图获批后，按已授权预算完成其余图片，并把原图、代表图版本、最终成品、审核报告和费用记录归档到同一个任务工作区。
+一组可独立安装、可组合使用的 Agent Skills，面向电商运营、商品摄影、视觉设计与商业内容制作。通过支持 Agent Skills 的软件，让 AI Agent 完成商品视觉策划、图像生成与编辑、质量审核和素材交付。
 
-面向跨境电商运营、视觉设计与需要复用同一套出图流程的团队。推荐**用户级全局安装**：在同一个 Agent 中安装一次，切换商品项目也能直接使用。
+推荐**用户级全局安装**：一次安装，即可在同一 Agent 的不同商品项目中调用；也可以只安装当前需要的某一个 Skill，不必安装整个合集。
 
-遵循 [Agent Skills 开放规范](https://agentskills.io/specification)。核心是一份通用 `SKILL.md`、可独立运行的 Python 脚本、按需加载的参考文档，不绑定特定对话模型。
+遵循 [Agent Skills 开放规范](https://agentskills.io/specification)，兼容支持该规范与本地命令执行的 Agent。仓库保持 MIT License 开源。
 
-> **边界**：本 Skill 制作 Amazon Listing 图片组（MAIN 首图、副图、广告图素材），不是 A+ 生成器或 PSD 工具；自动视觉初审不代表 Amazon 平台审核通过。
+## 核心优势
 
-## 常用术语
+- **独立 Skill，按需安装**：每个 Skill 有自己的 `SKILL.md`、脚本、依赖和参考文档，可单独安装、单独更新。
+- **真实商品保真**：以用户原始商品图为唯一外观依据，不编造材质、尺寸、认证或性能。
+- **专业商业视觉流程**：先识图与规划，再确认方案与费用，先做代表图，再完成整套并审核。
+- **可控付费调用**：方案审批、费用提示、授权调用次数与请求账本分离记录；不静默调用付费 API。
+- **可追溯交付**：原始素材、代表图版本、最终成品、审核报告与费用记录按产品归档，支持断点续跑与部分交付。
+- **普通用户友好**：对话中只展示当前需要看的方案、图片和选择；复杂 JSON 与内部日志留在任务记录中。
 
-| 术语 | 一句话解释 |
-| --- | --- |
-| **套图（Gallery）** | 为一个商品制作的一整套图片任务，有独立任务编号和记录。 |
-| **逐图任务（Image Task）** | 套图里固定编号的一张图，例如 03 号“刷头细节”，用途与比例在方案中锁定。 |
-| **产品原始参考图** | 你提供的真实商品照片。Agent 只复制保存，不修改或覆盖你的源文件。 |
-| **MAIN 主图** | Amazon 官方首图，通常要求纯白背景、仅商品、无文字；与普通 Listing 副图规则不同。 |
-| **Listing 副图** | 商品详情页中用于展示场景、细节、配色或用途的图片，不强制白底。 |
-| **代表图（Representative）** | 从套图中智能选出的一张样张，先验证产品保真和视觉方向；它本身就是最终套图中的该编号，批准后不会重复生成。 |
-| **白底主图复用** | 原图里已有通过检查的白底 MAIN 候选时，优先直接采用，不产生新的生图费用。 |
-| **修整 / 新生成** | 修整是对合格但有小问题的白底图做付费编辑；新生成是重新调用生图模型制作。两者都受预算与调用上限约束。 |
-| **自动初审（Visual QA）** | 多模态模型对照原图检查成品，给出问题与证据；它只是初筛，不是最终事实认定。 |
-| **人工终审** | 你本人确认整套图片可用。只有你的明确确认才算通过。 |
-| **方案确认** | 你接受逐图用途、比例、文案与总费用范围。它不等于无限付费授权。 |
-| **生图费用授权** | 首次或新增生图前，你对“调用你的 API Key 会产生真实费用”和调用上限的明确同意。 |
-| **生成次数上限 / 总预算** | 前者限制生图调用次数，后者限制包含审图与返工在内的总费用；两者分别记录。 |
-| **任务工作区（Workspace）** | 商品项目的目录，所有素材与输出都在这里的 `任务资产与审批/` 下；不是 Skill 安装目录。 |
-| **断点续跑** | 中断或换会话后，按 `task.json` 和请求账本继续未完成编号，不重复生成已成功的图片。 |
+## 已提供的 Skills
 
-更精确的定义、审批边界与状态说明见 **[查看完整术语与审批规则](docs/GLOSSARY.md)**。
+| Skill | 中文名称 | 状态 | 说明 |
+| --- | --- | --- | --- |
+| [`amazon-listing-images-skill`](skills/amazon-listing-images-skill/README.md) | 亚马逊商品套图生成技能 | **可用** | 从真实商品图完成 Amazon Listing 套图规划、白底 MAIN 识别与复用、代表图审批、批量生成、视觉审核与交付。 |
 
-## 核心能力
-
-- **先看图，再规划**：真实调用多模态模型识别所有参考图，生成产品名、可见事实、推断与未知项；不会只凭文件名猜商品。
-- **用户要求优先**：张数、比例、像素、逐图用途、文案、是否 MAIN、是否生成白底均可锁定；未指定的部分由 Agent 按商品特征补全。
-- **代表图不是第 1 张**：Agent 按可解释评分选择更能检验结构与风格的一张；批准后归档到正确编号。
-- **白底优先复用**：识别阶段同步评估已有白底 MAIN 候选；合格时在方案中推荐直接复用，不调用生图 API；不合格时说明原因并建议修整、重做或不纳入。
-- **版本与恢复**：代表图多版本不覆盖；已生成的编号可跳过；失败时保留部分成品、总览、审核报告与费用状态。
-- **费用前置**：每次生图前写入请求账本并检查授权次数；超限直接拦截，不依赖 Agent 自觉。
-- **四类资产 + 产品子目录**：原图、代表图、最终套图、记录报告都按同一产品名归档。
-
-## 环境要求
-
-- 支持 Agent Skills 且能执行本地命令的 Agent（OpenCode 已验证；其他见兼容性表）。
-- Python 3.9+，依赖见 `skills/amazon-gallery-studio/requirements.txt`（`openai`、`Pillow`）。
-- Node.js / `npx` 仅用于安装和更新 Skill。
-- 可访问你配置的 OpenAI 兼容视觉端点与图像编辑端点。
-- 商品图片支持 JPG/PNG/WEBP/TIFF；源文件不会被修改。
+每个 Skill 的安装、配置、员工 SOP 和术语说明，以该 Skill 自己的 README 为准。
 
 ## 快速开始（推荐全局安装）
 
-### 1. 安装 Skill
+### 1. 查看仓库内可安装的 Skills
 
 ```bash
-npx skills add wu66chen/amazon-gallery-studio -g
+npx skills add wu66chen/ecommerce-visual-skills --list
 ```
 
-`-g` 安装到当前用户全局范围，后续切换项目无需重复安装。可一次指定多个 Agent（名称以 Skills CLI 支持列表为准）：
+### 2. 只安装 Amazon Listing Images Skill
 
 ```bash
-npx skills add wu66chen/amazon-gallery-studio -g -a opencode codex claude-code cursor
+npx skills add wu66chen/ecommerce-visual-skills -g -s amazon-listing-images-skill
 ```
 
-查看、更新、卸载：
+安装时按 Skills CLI 提示选择 Agent。`-g` 表示用户级全局安装；不加 `-g` 则只安装到当前项目。
+
+### 3. 同时安装到多个 Agent
 
 ```bash
-npx skills ls -g
-npx skills update -g
-npx skills remove -g amazon-gallery-studio
+npx skills add wu66chen/ecommerce-visual-skills -g -a opencode codex claude-code cursor -s amazon-listing-images-skill
 ```
 
-> **验证状态**：已用本地仓库路径验证 Skills CLI 能发现本 Skill，并把 `SKILL.md`、`scripts/`、`references/`、`requirements.txt` 完整复制到隔离环境的 `~/.agents/skills/amazon-gallery-studio`。远程 GitHub 安装与各 Agent 内的自动加载尚未在本次改造中实测。
+Agent 名称以你安装的 Skills CLI 支持列表为准。**不需要一次安装仓库中的全部 Skills**，未来新增 Skill 也不会影响已安装的 Skill。
 
-### 2. 安装 Python 依赖
+### 4. 安装 Python 依赖
 
 ```bash
-python3 -m pip install -r ~/.agents/skills/amazon-gallery-studio/requirements.txt
+python3 -m pip install -r ~/.agents/skills/amazon-listing-images-skill/requirements.txt
 ```
 
-若你的客户端安装到其他目录，请换成实际的 `amazon-gallery-studio` 路径。建议使用虚拟环境。
+若客户端安装到其他目录，请替换为实际的 `amazon-listing-images-skill` 路径。
 
-### 3. 配置 API（一次配置，多项目复用）
+### 5. 配置 API Key
 
-默认使用 Tokease，视觉 `gemini-3.5-flash`、生图 `gpt-image-2`，图片默认 1:1、1024×1024。推荐写入用户级配置：
+推荐保存到用户级私有配置，而不是写进项目或仓库：
 
 ```bash
-mkdir -p ~/.config/amazon-gallery-studio
-printf 'TOKEASE_API_KEY=你的密钥\n' > ~/.config/amazon-gallery-studio/.env
-chmod 600 ~/.config/amazon-gallery-studio/.env
+mkdir -p ~/.config/amazon-listing-images-skill
+printf 'TOKEASE_API_KEY=你的密钥\n' > ~/.config/amazon-listing-images-skill/.env
+chmod 600 ~/.config/amazon-listing-images-skill/.env
 ```
 
-优先级：
+旧版 `~/.config/amazon-gallery-studio/.env` 继续兼容，无需重新配置。完整优先级见该 Skill 的 [配置说明](skills/amazon-listing-images-skill/references/configuration.md)。
 
-- 端点：内置默认 → `~/.config/amazon-gallery-studio/config.json` → `<工作区>/.amazon-gallery-studio.json`
-- 密钥：用户级 `.env` → 工作区 `.env` → 当前进程环境变量
+## 技能选择与使用
 
-`vision` 与 `image` 可分别配置不同的 OpenAI 兼容 `base_url`、模型和密钥变量名。是否支持多图编辑需要实际验证，本 Skill 不保证任意服务商可用。完整示例见 [配置说明](skills/amazon-gallery-studio/references/configuration.md)。
+1. 先在 [已提供的 Skills](#已提供的-skills) 中选择任务对应的 Skill。
+2. 打开该 Skill 的 README，按其中的安装命令与 SOP 操作。
+3. 在 Agent 所在商品项目中提供商品图，或给出可读取的本地路径。
+4. 按 Skill 提示确认方案、费用、代表图与最终套图。
 
-**安全**：不要把密钥写入提示词、图片目录、报告或 Git。错误信息只显示变量名，不显示密钥。
+当前第一个 Skill 的完整使用说明：
 
-### 4. 员工套图生成 SOP
+- [Amazon Listing Images Skill README](skills/amazon-listing-images-skill/README.md)
+- [完整术语与审批规则](docs/GLOSSARY.md)
 
-1. **提供产品图**：在对话中上传图片，或给出本机可读取的文件/文件夹路径。有张数、用途、比例等要求可以一并说；没有想法就让 Agent 推荐。
-2. **等待自动识图与方案**：Agent 复制原图到工作区、识别商品并生成套图方案；这一步不需要你操作。
-3. **审阅方案**：看逐图用途、比例、文案、白底处理和费用提示；有现成白底图时会标出“复用/修整/新生成/不纳入”的建议。需要改就直接说“改 03 的场景”或选择白底选项。
-4. **确认方案并授权费用**：在同一条回复里确认方案、调用上限与费用提示（例如回复 `1`）。确认后会调用你配置的 API Key，产生真实费用；无法可靠估价时会明确说明。
-5. **审阅代表图**：Agent 生成一张代表图并自动初审，你回复“通过”或指出要改的地方。
-6. **批量生成其余图片**：批准后 Agent 直接继续，不需要你再说“继续”；只生成尚未完成的编号。
-7. **审阅整套**：查看总览、问题清单与费用记录；回复“通过”、指定某张修改，或明确说“开始下一套”。
-8. **查看归档**：在 `任务资产与审批/01_原始素材/<产品名>/`、`02_代表图审批/<产品名>/`、`03_最终套图/<产品名>/`、`04_记录与报告/<产品名>/` 中查看对应文件。
+## 多 Agent 兼容性
 
-首次使用可以直接发送：
-
-> 使用 amazon-gallery-studio，根据这些商品图做一套 Amazon Listing 图片。先识别商品并给我方案和预估费用，确认后再生成代表图；文案我没有想法，你来建议。
-
-需要更具体时：
-
-> 做 7 张 1:1，保留蓝、紫、灰、黄四个配色；03 做细节，05 做包装；不要复刻原图背景。先确认方案和费用。
-
-注意：
-
-- 原图会复制保留，不会被覆盖或移动；已有可用白底图时优先建议复用，你也可以在方案确认时改为重新生成或不用。
-- AI 对白底 MAIN 的判断只是辅助检查，不代表 Amazon 平台已经审核通过。
-- 不确定的材质、尺寸、认证、功能不会写成商品事实。
-- 官方 MAIN 与副图规则不同，场景图不能因为“好看”就当作 MAIN。
-- 多模态识图/审图默认后台执行，不逐次弹费用提醒，但调用次数与可得费用都会记账。
-- 失败或中断时，已完成图片、总览、报告和费用仍可在工作区找到。
-- 自动初审通过 ≠ Amazon 上架审核通过。
-
-## 兼容的 Agent
-
-| Agent | 安装方式 | 状态 |
+| Agent | 安装方式 | 验证状态 |
 | --- | --- | --- |
-| **OpenCode** | Skills CLI 全局安装；读取 `~/.config/opencode/skills/`、`~/.agents/skills/` 等 | 已验证：本地路径全局安装、跨目录执行、无付费规划闭环 |
+| **OpenCode** | Skills CLI 全局安装；读取 `~/.agents/skills/` 等目录 | 已验证：本地/远程发现、全局安装、跨目录无付费流程 |
 | **Codex** | Skills CLI 全局安装；使用其支持的技能目录 | 仅格式兼容，未实测 |
 | **Claude Code** | Skills CLI 全局安装；用户级 `~/.claude/skills/` | 仅格式兼容，未实测 |
 | **Cursor** | Skills CLI 安装；按 Cursor 当前版本技能目录 | 仅格式兼容，未实测 |
 | **WorkBuddy** | 通过客户端“技能”界面导入完整 Skill 文件夹 | 未验证，请以实际版本界面为准 |
 
-技能可复用不等于每个客户端都允许读写本地文件或运行 Python；附件传递、审批交互也因客户端而异。**跨 Agent 的可靠兜底始终是普通文字与 `1/2/3` 回复。**
+安装 Skill 不等于客户端自动获得读写本地文件、运行 Python 或调用 API 的权限；这些能力取决于具体 Agent 与配置。跨 Agent 的交互兜底始终是普通文字与 `1/2/3` 回复。
 
-### 项目级安装（可选）
+## 通用环境要求
 
-```bash
-cd /path/to/your-product-project
-npx skills add wu66chen/amazon-gallery-studio
-```
+- 支持 Agent Skills 且能执行本地命令的 Agent。
+- 各 Skill 声明的 Python 版本与依赖（见对应 `requirements.txt`）。
+- Node.js / `npx` 仅用于 Skills CLI 安装与更新。
+- 可访问用户在 Skill 中配置的 OpenAI 兼容模型服务。
+- 商品素材的格式要求以对应 Skill 说明为准。
 
-或手动复制完整的 `amazon-gallery-studio` 文件夹到项目 `.agents/skills/`（OpenCode 也支持 `.opencode/skills/`）。同名全局与项目级 Skill 可能冲突，建议二选一。
-
-## 工作流程与状态
-
-```text
-导入并识图 → 方案待确认 → 方案已批准
-→ 代表图生成 + 自动初审 → 代表图待批准
-→ 代表图已批准 → 生成其余编号 → 整套初审 → 整套待终审 → 用户通过
-```
-
-异常状态包括 `blocked`（请求结果未知，暂停避免重复扣费）、`partial`（部分完成，保留成品与报告）、`failed`、`resume_pending`。状态保存在 `task.json`，恢复时只执行未完成且已授权的工作。
-
-## 输出目录
-
-```text
-<工作区>/
-├── .gallery-project-root
-└── 任务资产与审批/
-    ├── 01_原始素材/<产品名>/
-    ├── 02_代表图审批/<产品名>/        # v01、v02…不覆盖
-    ├── 03_最终套图/<产品名>/
-    │   ├── 01_....png …               # 已批准/待终审图片
-    │   ├── 待审候选/                   # 整套通过前
-    │   ├── 套图总览_待审.jpg
-    │   ├── 整套审核_待审.md
-    │   ├── 套图总览.jpg                # 通过后
-    │   └── 最终审核报告.md             # 通过后
-    └── 04_记录与报告/<产品名>/
-        ├── task.json
-        ├── product-profile.json
-        ├── gallery-plan.json
-        ├── approvals.json
-        ├── api-requests.json
-        ├── 方案简报.md
-        ├── 代表图审核_v01.md
-        └── 质检_03.json …
-```
-
-工作区由 `--workspace`、`AMAZON_GALLERY_WORKSPACE` 或当前目录决定。显式指定的已有目录必须包含 `.gallery-project-root`，避免把外部素材目录误当工作区。Skill 安装目录不会写入任何任务文件。
-
-## 商品保真、审核与费用
-
-- **保真**：轮廓、比例、颜色、可见 Logo/印花、开合结构、提手与表面纹理必须与参考图一致；未拍到的视角标记未知，不补造。
-- **审核分层**：技术检查（尺寸/比例/白底角）→ 多模态对照初审 → 你的终审。三者互不替代，也不等于平台合规。白底复用的判断同样只是辅助，不等于平台审核。
-- **费用**：`api-requests.json` 记录每次请求的模型、参数、状态与可得 usage；脚本在每次生图前检查授权调用次数并硬拦截。价格未知时显示“无法可靠预估”，不会编造金额。
-- **返工**：只重做指定编号；已批准代表图与其他已完成编号不重复生成。任何新增生图都受同一授权上限约束。
-
-## 更新与维护
+## 更新与卸载
 
 ```bash
-npx skills update -g
+npx skills ls -g                      # 查看已安装的全局 Skills
+npx skills update -g                  # 更新全局 Skills
+npx skills remove -g amazon-listing-images-skill
 ```
 
-更新前查看变更说明；升级可能调整记录结构与脚本参数。建议保留一个已验证版本，先在测试用户试运行。
+只更新单个 Skill 不会覆盖其他 Skill。升级可能存在记录结构或脚本参数变化，建议先在测试用户试运行。
+
+## 未来 Skill 规划
+
+以下方向仍在规划中，**尚未实现，不可安装**。只有在实际开发、测试并满足独立安装规范后，才会加入 `skills/` 并提供正式安装说明。
+
+| 规划中的 Skill | 计划职责 |
+| --- | --- |
+| `amazon-a-plus-design-skill` | Amazon A+ 内容策划、模块视觉设计、版式与可编辑交付。与 Listing 图片组明确区分。 |
+| `product-color-material-skill` | 商品局部换色、材质替换、色卡还原、结构保真与颜色一致性审核。 |
+| `ecommerce-image-qa-skill` | 对已有电商图片做独立视觉质量检查；不替代各生产 Skill 内部的自动质检。 |
+| `ecommerce-campaign-visuals-skill` | 活动主视觉、促销横幅、独立站与社媒商业视觉。 |
+
+新增 Skill 的判断标准：有独立用户任务、可单独安装、资源自包含、不与现有 Skill 重复、经验证后才列为可用。
 
 ## 常见问题
 
-**Agent 找不到 Skill？** 确认安装目录层级为 `<skills>/amazon-gallery-studio/SKILL.md`，frontmatter 完整，并重启或重新加载客户端。
+**必须安装整个仓库的 Skills 吗？** 不需要。使用 `-s <skill-id>` 只安装指定的 Skill。
 
-**能识图但不能生图？** 检查 Python 依赖、API Key、图像端点是否兼容 `images/edits` 并返回 `b64_json`、账户额度。错误信息只会指出缺失的变量名。
+**安装后找不到 Skill？** 检查安装目标 Agent、Skill 目录层级（`<skills>/<skill-id>/SKILL.md`）以及客户端是否重启或重新加载。
 
-**换服务商？** 只要兼容 OpenAI 的对话和图像编辑格式，可在用户级或工作区配置中替换；模型 ID 必须是服务商真实支持的。
+**可以只用某个 Skill 吗？** 可以。每个 Skill 的脚本、依赖和参考文档随其安装包一起分发。
 
-**为什么不能全自动无人值守？** 方案/费用确认与代表图批准是两个必要决策点；最终商品真实性仍需人工确认。
+**仓库以后会增加更多 Skill 吗？** 会，但只在真正完成并验证后加入；已安装的 Skill 不受影响。
 
-**支持 A+ 或 PSD 吗？** 不属于当前默认交付范围。
-
-## 已知限制
-
-- 远程 GitHub 安装与 Agent 会话内付费出图未在本次改造中实测；本地路径安装与无付费闭环已验证。
-- 除 OpenCode 外，其他 Agent 仅完成格式/目录适配说明，未做真实端到端测试。
-- “批准后自动继续”由 `SKILL.md` 指令驱动；脚本负责门禁与执行，客户端是否严格遵循需在目标 Agent 中验证。
-- 生图端点必须兼容多图编辑；部分中转站会忽略多图或返回不同尺寸。本项目会读取实际文件并记录，但无法强制服务商支持。
-- 脚本不包含价格表；费用估算由 Agent 与用户根据可核验报价完成，脚本只校验“已确认费用”状态与调用次数上限。
-- 白底复用基于导入时的多模态评估与程序化边界/像素检查；不同站点与类目的 MAIN 细则仍需人工核对。
-- Amazon MAIN 规则因站点/类目而异，本项目不替代卖家后台核查。
-
-## 开发与测试
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-测试使用 Mock/Dry Run 与本地生成的图片，不调用付费生图 API。覆盖：导入与产品命名、四类目录、方案哈希与审批、代表图任意编号与版本、预算硬拦截、批量幂等与部分交付、配置优先级与密钥保护、文档验收。
+**如何查看完整术语与审批边界？** 见 [docs/GLOSSARY.md](docs/GLOSSARY.md)，正式内容位于对应 Skill 的 `references/` 中。
 
 ## 开源许可证
 
@@ -245,9 +147,4 @@ python3 -m unittest discover -s tests -v
 - [Agent Skills 规范](https://agentskills.io/specification)
 - [Skills CLI](https://github.com/vercel-labs/skills)
 - [OpenCode 技能文档](https://opencode.ai/docs/skills/)
-- [完整术语与审批规则](docs/GLOSSARY.md)
-- [Tokease](https://tokease.com/)
-
----
-
-Amazon Gallery Studio 提供可复用的商品套图流程；图片质量、可发布性和真实商品信息由使用者最终确认。
+- [Amazon Listing Images Skill](skills/amazon-listing-images-skill/README.md)

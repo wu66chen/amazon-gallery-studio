@@ -4,7 +4,7 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/amazon-gallery-studio/scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/amazon-listing-images-skill/scripts"))
 from PIL import Image  # noqa: E402
 import ags_core  # noqa: E402
 

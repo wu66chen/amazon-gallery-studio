@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/amazon-gallery-studio/scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills/amazon-listing-images-skill/scripts"))
 import api_runtime  # noqa: E402
 
 
@@ -39,6 +39,43 @@ class ApiRuntimeTest(unittest.TestCase):
             cfg = api_runtime.endpoint("vision", self.root)
             self.assertEqual(cfg["base_url"], "https://workspace.example/v1")
             self.assertEqual(cfg["model"], "v2")
+
+    def test_legacy_user_config_is_read_when_new_is_absent(self):
+        xdg = self.base / "xdg"
+        legacy = xdg / "amazon-gallery-studio"
+        legacy.mkdir(parents=True)
+        (legacy / ".env").write_text("LEGACY_KEY=legacy-secret\n")
+        (legacy / "config.json").write_text(
+            '{"vision":{"base_url":"https://legacy.example/v1","model":"legacy-model","api_key_env":"LEGACY_KEY"}}')
+        with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(xdg)}, clear=False):
+            cfg = api_runtime.endpoint("vision", self.root)
+        self.assertEqual(cfg["base_url"], "https://legacy.example/v1")
+        self.assertEqual(cfg["model"], "legacy-model")
+        self.assertEqual(cfg["key"], "legacy-secret")
+
+    def test_new_user_config_overrides_legacy(self):
+        xdg = self.base / "xdg"
+        for name, key, model in (("amazon-gallery-studio", "LEGACY_KEY", "legacy-model"),
+                                 ("amazon-listing-images-skill", "NEW_KEY", "new-model")):
+            directory = xdg / name
+            directory.mkdir(parents=True)
+            (directory / ".env").write_text("%s=%s-secret\n" % (key, name))
+            (directory / "config.json").write_text(
+                '{"vision":{"base_url":"https://%s.example/v1","model":"%s","api_key_env":"%s"}}' % (name, model, key))
+        with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(xdg)}, clear=False):
+            cfg = api_runtime.endpoint("vision", self.root)
+        self.assertEqual(cfg["base_url"], "https://amazon-listing-images-skill.example/v1")
+        self.assertEqual(cfg["model"], "new-model")
+        self.assertEqual(cfg["key"], "amazon-listing-images-skill-secret")
+
+    def test_legacy_workspace_config_is_read_and_new_overrides_it(self):
+        (self.root / ".env").write_text("K=value123\n")
+        legacy = self.root / api_runtime.LEGACY_CONFIG_NAME
+        legacy.write_text('{"vision":{"base_url":"https://legacy.example/v1","model":"legacy","api_key_env":"K"}}')
+        self.assertEqual(api_runtime.endpoint("vision", self.root)["base_url"], "https://legacy.example/v1")
+        (self.root / api_runtime.CONFIG_NAME).write_text(
+            '{"vision":{"base_url":"https://new.example/v1","model":"new","api_key_env":"K"}}')
+        self.assertEqual(api_runtime.endpoint("vision", self.root)["base_url"], "https://new.example/v1")
 
     def test_process_environment_beats_files(self):
         (self.root / ".env").write_text("TOKEASE_API_KEY=file-secret\n")

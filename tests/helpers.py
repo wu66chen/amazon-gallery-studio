@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "skills" / "amazon-gallery-studio" / "scripts"
+SCRIPTS = ROOT / "skills" / "amazon-listing-images-skill" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from PIL import Image  # noqa: E402
